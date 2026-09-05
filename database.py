@@ -38,10 +38,7 @@ def init_db():
 
         conn.commit()
 
-
-if __name__ == "__main__":
-    init_db()
-    print("Database and tables created successfully!")
+#3. CRUD Layer
 
 def add_habit(name: str):
     today = date.today().isoformat()
@@ -73,12 +70,44 @@ def fetch_every_habit_with_today_status():
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
+
+# 4. Toggle habit status
+def toggle_habit_status(habit_id : int):
+    today = date.today().isoformat()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT id FROM completions WHERE habit_id = ? AND completed_date = ?;",
+            (habit_id, today)
+        )
+        record = cursor.fetchone()
+
+        if record:
+            # Record exists: remove from completions
+            cursor.execute(
+                "DELETE FROM completions WHERE id = ?;", (record["id"],)
+            )
+            completed = False
+        else:
+            # Record doesn't exist: add to completions
+            cursor.execute(
+                "INSERT INTO completions (habit_id, completed_date) VALUES (?, ?);",
+                (habit_id, today)
+            )
+            completed = True
+
+        conn.commit()
+        return completed
+
+# 5. Delete habit from database
+def delete_habit(habit_id: int):
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM habits WHERE id = ?;", (habit_id,))
+        conn.commit()
+
 if __name__ == "__main__":
     init_db()
-
-    new_id = add_habit("Drink 2L of water everyday :)")
-    print(f"Added habit with ID = {new_id}")
-
-    all_habits = fetch_every_habit_with_today_status()
-    print("All habits in DB: ")
-    print(all_habits)
+    print("Database initialized successfully.")
